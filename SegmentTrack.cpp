@@ -5,14 +5,12 @@ cv::Mat median_blurred_image;
 cv::Point Landmark;
 cv::Point TrackPoint;
 std::string name;
-
 int RADIUS = 160;
 bool pause = true;
 bool trigger = true;
 bool reset = true;
 bool byRadius = false;
 bool byCanny = false;
-
 std::vector < cv::Point > P(1, cv::Point(0, 0));
 std::vector <int> sizes(1, 0);
 std::vector <double> DIST(1, 0);
@@ -44,8 +42,7 @@ int main(int argv, char** argc)
 		cv::Mat static_image = cv::Mat::zeros(im.frame.rows, im.frame.cols, CV_8UC3);
 		cv::Mat selected_contours_image = cv::Mat::zeros(im.frame.rows, im.frame.cols, CV_8UC3);
 		cv::Mat selected_contours_image_backup = cv::Mat::zeros(im.frame.rows, im.frame.cols, CV_8UC3);
-
-		cvtColor(im.frame, im.frame, CV_BGR2GRAY);
+		cv::cvtColor(im.frame, im.frame, CV_BGR2GRAY);
 		medianBlur(im.frame, median_blurred_image, 5);
 
 		cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
@@ -69,9 +66,9 @@ int main(int argv, char** argc)
 			if (pause == true){
 				pauseProgram(static_image, contours, centroids, name);
 			}
+
 			std::vector <cv::Point> tracked_centroid;
 			std::vector <std::vector < cv::Point > > tracked_contour;
-
 			validationOfCentroid(contours, centroids, centroids.size(), 30, 0.2, 0.25, 3, tracked_centroid, tracked_contour);
 
 			if (byRadius == false)
@@ -86,7 +83,6 @@ int main(int argv, char** argc)
 			canny_with_otsu(CLAHE_image);
 			findContours(im.imageCanny, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
 			eraseContours(contours, 100);
-
 			std::vector<cv::Point> centroids(contours.size());
 
 			findCentroids_by_Contour(contours, centroids);
@@ -98,7 +94,6 @@ int main(int argv, char** argc)
 
 			std::vector <cv::Point> tracked_centroid;
 			std::vector <std::vector < cv::Point > > tracked_contour;
-
 			validationOfCentroid(contours, centroids, centroids.size(), 30, 0.2, 0.25, 3, tracked_centroid, tracked_contour);
 
 			if (byRadius == false)
@@ -108,9 +103,9 @@ int main(int argv, char** argc)
 				drawResults(static_image, selected_contours_image, contours, centroids);
 			}
 		}
-		imshow(name, static_image);
-		imshow("Selected contours", selected_contours_image);
-		imshow("Result", im.frame);
+		cv::imshow(name, static_image);
+		cv::imshow("Selected contours", selected_contours_image);
+		cv::imshow("Result", im.frame);
 		cv::waitKey(1);
 	}
 	return -1;
