@@ -14,7 +14,7 @@ int main(int argv, char** argc)
 	byGradient = true;
 	name = "Using Gradient";
 	cv::namedWindow(name);
-	cv::setMouseCallback(name, mouse_callback);
+	cv::setMouseCallback(name, mouseCallback);
 	trackbar(empty_handle, name);
 
 	while (vid.read(frame))
