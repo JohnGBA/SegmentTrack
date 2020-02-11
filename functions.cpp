@@ -1,7 +1,6 @@
 #include "Header.h"
 
 cv::Point landmark;
-cv::Point trackPoint;
 std::string name;
 int radius = 160;
 bool pause = true;
@@ -18,7 +17,8 @@ int lowThresholdSlider = 200;
 int highThresholdSlider = 100;
 int sliderLimit = 600;
 
-cv::Mat segmentationByAdaptThreshold(cv::Mat preProcessedImage, cv::Mat selected_contours_image, cv::Mat segmentedImage)
+cv::Mat segmentationByAdaptThreshold(cv::Mat preProcessedImage, cv::Mat selected_contours_image,
+	cv::Mat segmentedImage)
 {
 	cv::Mat adapt_thresh_image;
 	cv::adaptiveThreshold(preProcessedImage, adapt_thresh_image, 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY_INV, 25, 8);
@@ -38,7 +38,7 @@ cv::Mat segmentationByAdaptThreshold(cv::Mat preProcessedImage, cv::Mat selected
 
 	std::vector <cv::Point> tracked_centroid;
 	std::vector <std::vector < cv::Point > > tracked_contour;
-	validationOfCentroid(contours, centroids, centroids.size(), 30, 0.2, 0.25, 3, tracked_centroid, tracked_contour);
+	validationOfCentroid(contours, centroids, centroids.size(), 30, 0.2, 0.25, tracked_centroid, tracked_contour);
 
 	if (byRadius == false)
 		drawResults(preProcessedImage, segmentedImage, selected_contours_image, tracked_contour, tracked_centroid);
@@ -49,7 +49,8 @@ cv::Mat segmentationByAdaptThreshold(cv::Mat preProcessedImage, cv::Mat selected
 	return segmentedImage;
 }
 
-cv::Mat segmentByCanny(cv::Mat preProcessedImage, cv::Mat selected_contours_image, cv::Mat segmentedImage)
+cv::Mat segmentByCanny(cv::Mat preProcessedImage, cv::Mat selected_contours_image,
+	cv::Mat segmentedImage)
 {
 	cv::Mat cannyImage = canny_with_otsu(preProcessedImage);
 	findContours(cannyImage, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
@@ -65,7 +66,7 @@ cv::Mat segmentByCanny(cv::Mat preProcessedImage, cv::Mat selected_contours_imag
 
 	std::vector <cv::Point> tracked_centroid;
 	std::vector <std::vector < cv::Point > > tracked_contour;
-	validationOfCentroid(contours, centroids, centroids.size(), 30, 0.2, 0.25, 3, tracked_centroid, tracked_contour);
+	validationOfCentroid(contours, centroids, centroids.size(), 30, 0.2, 0.25, tracked_centroid, tracked_contour);
 
 	if (byRadius == false)
 		drawResults(preProcessedImage, segmentedImage, selected_contours_image, tracked_contour, tracked_centroid);
@@ -79,7 +80,7 @@ cv::Mat segmentByCanny(cv::Mat preProcessedImage, cv::Mat selected_contours_imag
 cv::Mat preProcess(cv::Mat frame) 
 {
 	cv::cvtColor(frame, frame, CV_BGR2GRAY);
-	medianBlur(frame, frame, 5);
+	medianBlur(frame, frame, 3);
 	cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
 	clahe->setClipLimit(4);
 	cv::Mat preProcessedImage;
@@ -181,7 +182,8 @@ cv::Mat canny_with_otsu(cv::Mat& image) {
 	return cannyImage;
 }
 
-void drawCirclesInSelectedContours(cv::Mat& image, std::vector< std::vector<cv::Point> >& contours, cv::Scalar color)   // fills a contours with equally spread circles
+void drawCirclesInSelectedContours(cv::Mat& image, std::vector< std::vector<cv::Point> >& contours,
+	cv::Scalar color)   // fills a contours with equally spread circles
 {
 	size_t capacity1 = contours.size();
 
@@ -240,7 +242,8 @@ void drawCentroids(cv::Mat& image, std::vector<cv::Point>& centroids)
 	}
 }
 
-void selectContours(std::vector< std::vector<cv::Point> >& contours, std::vector<cv::Point>& centroids, cv::Point& landmark, int maxDistance, int NbCentroids)
+void selectContours(std::vector< std::vector<cv::Point> >& contours, std::vector<cv::Point>& centroids, 
+	cv::Point& landmark, int maxDistance, int NbCentroids)
 {
 	std::vector< double > dist(centroids.size());
 	std::vector< std::vector<cv::Point> > contoursTemp;
@@ -327,7 +330,8 @@ void mouseCallback(int  event, int  x, int  y, int  flag, void* param)
 	}
 }
 
-void pauseProgram(cv::Mat& segmentedImage, std::vector< std::vector<cv::Point> > contours, std::vector<cv::Point> centroids, std::string name) 
+void pauseProgram(cv::Mat& segmentedImage, std::vector< std::vector<cv::Point> > contours,
+	std::vector<cv::Point> centroids, std::string name) 
 {
 	cv::Mat selectedContoursImage = cv::Mat::zeros(segmentedImage.rows, segmentedImage.cols, CV_8UC3);
 	cv::Mat segmentedImageCopy = segmentedImage.clone();
@@ -341,16 +345,15 @@ void pauseProgram(cv::Mat& segmentedImage, std::vector< std::vector<cv::Point> >
 		if (byRadius == false)
 			selectContours(contours, centroids, landmark, NULL, 1);
 
-		else
+		else {
+			//draws the radius green circle and select the contours inside it
 			selectContours(contours, centroids, landmark, radius, NULL);
+			circle(segmentedImage, landmark, radius, cv::Scalar(0, 255, 0), 1);
+		}
 
 		findCentroids(contours, centroids); 
 		drawContours(selectedContoursImage, contours, -1, cv::Scalar(255, 255, 255));
 		drawCentroids(selectedContoursImage, centroids);
-
-		//draws the radius green circle
-		if (byRadius == true)
-			circle(segmentedImage, landmark, radius, cv::Scalar(0, 255, 0), 1);
 
 		//draws the landmark point
 		circle(segmentedImage, landmark, 5, cv::Scalar(255, 0, 255), 2);
@@ -367,7 +370,8 @@ void pauseProgram(cv::Mat& segmentedImage, std::vector< std::vector<cv::Point> >
 	cv::destroyWindow("Selected contour(s)");
 }
 
-void cannyPause(cv::Mat preProcImage, cv::Mat& segmentedImage, std::vector< std::vector<cv::Point> > contours, std::vector<cv::Point> centroids, std::string name)
+void cannyPause(cv::Mat preProcImage, cv::Mat& segmentedImage, std::vector< std::vector<cv::Point> > contours, 
+	std::vector<cv::Point> centroids, std::string name)
 {
 	cv::Mat selectedContoursImage = cv::Mat::zeros(segmentedImage.rows, segmentedImage.cols, CV_8UC3);
 	cv::Mat segmentedImageCopy = segmentedImage.clone();
@@ -389,9 +393,6 @@ void cannyPause(cv::Mat preProcImage, cv::Mat& segmentedImage, std::vector< std:
 		else
 			selectContours(contours, centroids, landmark, radius, NULL);
 
-		/*findCentroids(contours, centroids);
-		drawContours(segmentedImage, contours, -1, cv::Scalar(255, 255, 255));
-		drawCentroids(segmentedImage, centroids);*/
 		selectContours(contours, centroids, landmark, radius, NULL);
 		findCentroids(contours, centroids);
 		drawContours(selectedContoursImage, contours, -1, cv::Scalar(255, 255, 255));
@@ -422,80 +423,88 @@ void newSize(std::vector <int>& sizes, int size) {
 	sizes.insert(sizes.begin(), size);
 }
 
-void newDIST(std::vector <double>& dist, double& distance) {
+void newDist(std::vector <double>& dist, double& distance) {
 	dist.pop_back();
 	dist.insert(dist.begin(), distance);
 }
 
-void get_Points(std::vector< std::vector<cv::Point> >& c, std::vector< std::vector<cv::Point> >& p, int Nb_points)
+void getPoints(std::vector< std::vector<cv::Point> >& contours, 
+	std::vector< std::vector<cv::Point> >& allContoursPoints, int nbPointsToGet)
 {
-	size_t capacity1 = c.size();
-	std::vector < cv::Point > l;
+	size_t nbContours = contours.size();
+	std::vector < cv::Point > points;
 
-	for (int i = 0; i < capacity1; i++) {
-		size_t capacity2 = c[i].size();
-		int step = cvRound(((int)capacity2 / Nb_points));
+	for (int i = 0; i < nbContours; i++) {
+		size_t sizeContour = contours[i].size();
+		int step = cvRound(((int)sizeContour / nbPointsToGet));
 
-		for (int j = 0; j < capacity2; j = j + step) {
-			l.push_back(c[i][j]);
+		for (int j = 0; j < sizeContour; j = j + step) {
+			points.push_back(contours[i][j]);
 		}
-		p.push_back(l);
-		l.clear();
+		allContoursPoints.push_back(points);
+		points.clear();
 	}
 }
 
-void calculateDistances(std::vector< std::vector<cv::Point> >& points, std::vector<cv::Point>& centroids, std::vector <double>& distances)
+void calculateMeanDistances(std::vector< std::vector<cv::Point> >& points, 
+	std::vector<cv::Point>& centroids, std::vector <double>& meanDistances)
 {
-	size_t capacity = centroids.size();
+	size_t nbCentroids = centroids.size();
 	double sum = 0;
 
-	for (int i = 0; i < capacity; i++) {
-		size_t capacity2 = points[i].size();
+	for (int i = 0; i < nbCentroids; i++) {
+		size_t nbPoints = points[i].size();
 
-		for (int j = 0; j < capacity2; j++) {
+		for (int j = 0; j < nbPoints; j++) {
 			sum += cv::norm(points[i][j] - centroids[i]);
 		}
 
-		sum = sum / capacity2;
-		distances.push_back(sum);
+		sum = sum / nbPoints;
+		meanDistances.push_back(sum);
 		sum = 0;
 	}
 }
 
-void drawResults(cv::Mat& preProcFrame, cv::Mat& segmentedImage, cv::Mat& selectedContours, std::vector < std::vector<cv::Point> > c, std::vector< cv::Point > centroids) {
+void drawResults(cv::Mat& preProcFrame, cv::Mat& segmentedImage, cv::Mat& selectedContours,
+	std::vector < std::vector<cv::Point> > contours, std::vector< cv::Point > centroids)
+{
 	if (byRadius == true)
 		circle(segmentedImage, landmark, radius, cv::Scalar(0, 255, 0), 1);
 
 	circle(segmentedImage, landmark, 5, cv::Scalar(255, 0, 255), 2);
 	circle(segmentedImage, pt[0], 6, cv::Scalar(255, 0, 0), 2);
-	drawContours(selectedContours, c, -1, cv::Scalar(255, 255, 255));
+	drawContours(selectedContours, contours, -1, cv::Scalar(255, 255, 255));
 	drawCentroids(selectedContours, centroids);
 	cv::cvtColor(preProcFrame, preProcFrame, CV_GRAY2BGR);
-	drawCirclesInSelectedContours(preProcFrame, c, cv::Scalar(0, 0, 255));
-	cv::imshow("aa", preProcFrame);
+	drawCirclesInSelectedContours(preProcFrame, contours, cv::Scalar(0, 0, 255));
+	cv::imshow("Preprocessed Frame", preProcFrame);
 	cv::waitKey(10);
 }
 
-void validationOfCentroid(std::vector< std::vector<cv::Point> >& c, std::vector <cv::Point>& centroids, int Nb_cent, int param_px, double param_size, double param_distance, int param_crit, std::vector <cv::Point>& TrackedCentroid, std::vector <std::vector  < cv::Point >>& trackedContour) {
+void validationOfCentroid(std::vector< std::vector<cv::Point> >& contours, std::vector <cv::Point>& centroids, 
+	int nbCentroids, int proximityConstraint, double sizeConstraint, double meanDistanceConstraint,
+	std::vector <cv::Point>& TrackedCentroid, std::vector <std::vector  < cv::Point >>& trackedContour) 
+{
+	cv::Point trackPoint;
 	cv::Point distance;
-	double relative_size = 0;
-	double relative_change = 0;
+	double relativeSize = 0;
+	double relativeChange = 0;
 	int criteria = 0;
-	std::vector < double > distances;
+	std::vector < double > meanDistances;
 	double distanceC = 0;
 	int sizeC = 0;
 	std::vector <int> sizesC;
-	int ID_cent = 0;
+	int IdCentroid = 0;
 	std::vector < std::vector<cv::Point> > points;
 
-	selectContours(c, centroids, landmark, NULL, Nb_cent); // Modifies contours, centroids.
-	get_Points(c, points, 10); // points[i] are in same order as contours[i] and size[i] etc..
-	calculateDistances(points, centroids, distances);
+	selectContours(contours, centroids, landmark, NULL, nbCentroids); 
+	getPoints(contours, points, 10); // points[i] are in same order as contours[i] and size[i] etc..
+	calculateMeanDistances(points, centroids, meanDistances);
 
-	for (int i = 0; i < Nb_cent; i++) {
+	for (int i = 0; i < nbCentroids; i++) {
 		trackPoint = centroids[i];
-		distanceC = distances[i];
-		sizeC = (int)c[i].size();
+		distanceC = meanDistances[i];
+		sizeC = (int)contours[i].size();
 		sizesC.push_back(sizeC);
 
 		if (trigger)  // trigger  == true when we change trackPoint
@@ -510,26 +519,26 @@ void validationOfCentroid(std::vector< std::vector<cv::Point> >& c, std::vector 
 				trigger = false;
 		}
 
-		if ((norm(trackPoint - pt[0]) < param_px)) {
+		if ((norm(trackPoint - pt[0]) < proximityConstraint)) {
 			criteria += 1;
 		}
 
-		relative_size = abs((double)(sizeC - sizes[0]) / sizes[0]);
+		relativeSize = abs((double)(sizeC - sizes[0]) / sizes[0]);
 
-		if ((relative_size < param_size)) {
+		if ((relativeSize < sizeConstraint)) {
 			criteria += 1;
 		}
 
-		relative_change = abs((double)(distanceC - dist[0]) / dist[0]);
+		relativeChange = abs((double)(distanceC - dist[0]) / dist[0]);
 
-		if ((relative_change < param_distance)) {
+		if ((relativeChange < meanDistanceConstraint)) {
 			criteria += 1;
 		}
 
-		if (criteria >= param_crit) {
-			ID_cent = i;
+		if (criteria >= 3) {
+			IdCentroid = i;
 			newSize(sizes, sizeC);
-			newDIST(distances, distances[i]);
+			newDist(meanDistances, meanDistances[i]);
 
 			distance = trackPoint - pt[0];
 			newPoint(pt, trackPoint);
@@ -537,6 +546,6 @@ void validationOfCentroid(std::vector< std::vector<cv::Point> >& c, std::vector 
 			break;
 		}
 	}
-	trackedContour.push_back(c[ID_cent]);
-	TrackedCentroid.push_back(centroids[ID_cent]);
+	trackedContour.push_back(contours[IdCentroid]);
+	TrackedCentroid.push_back(centroids[IdCentroid]);
 }
