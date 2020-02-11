@@ -1,7 +1,5 @@
 #include "Header.h"
 
-cv::Mat grad_x, grad_y;
-cv::Mat median_blurred_image;
 cv::Point Landmark;
 cv::Point TrackPoint;
 std::string name;
@@ -10,17 +8,20 @@ bool pause = true;
 bool trigger = true;
 bool reset = true;
 bool byRadius = false;
-bool byCanny = true;
 std::vector < cv::Point > P(1, cv::Point(0, 0));
 std::vector <int> sizes(1, 0);
 std::vector <double> DIST(1, 0);
 std::vector < std::vector<cv::Point> > contours;
+bool byGradient = true;
 
-int H_otsu_slider = 200;
-int L_otsu_slider = 100;
+int lowThresholdSlider = 200;
+int highThresholdSlider = 100;
+int sliderLimit = 600;
 
-images im;
-parameters_t par;
+std::string window;
+double min, max;
+
+
 cv::Point Idmax, Idmin;
 int low_t, high_t;
 double m = 2;  // scale factor in Sobel function
@@ -58,7 +59,6 @@ cv::Mat segmentationByAdaptThreshold(cv::Mat preProcessedImage, cv::Mat selected
 
 cv::Mat segmentByCanny(cv::Mat preProcessedImage, cv::Mat selected_contours_image, cv::Mat segmentedImage)
 {
-
 	cv::Mat cannyImage = canny_with_otsu(preProcessedImage);
 	findContours(cannyImage, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
 	eraseContours(contours, 100);
@@ -97,30 +97,39 @@ cv::Mat preProcess(cv::Mat frame)
 
 void trackbar(void(*functocall)(int, void*), std::string image_window)
 {
-	im.window = image_window;
+	window = image_window;
 	cv::namedWindow(image_window);
 	cv::setMouseCallback(image_window, mouse_callback, NULL);
-	cv::createTrackbar("Low slider", image_window, &par.L_otsu_slider, par.otsu_lim, functocall);
-	cv::createTrackbar("High slider", image_window, &par.H_otsu_slider, par.otsu_lim, functocall);
+	cv::createTrackbar("Low slider", image_window, &highThresholdSlider, sliderLimit, functocall);
+	cv::createTrackbar("High slider", image_window, &lowThresholdSlider, sliderLimit, functocall);
 }
 
-void applySobel(const cv::Mat& image, double scale_fac)
+std::array <cv::Mat,4> findGradients(const cv::Mat& image, double scale_fac)
 {
+	//Gradient on x and y and magnitude 
+	std::array <cv::Mat, 4> gradient;
 	double scale = 1;
 	int delta = 0;
-	cv::Mat grad_x, grad_y;
+	cv::Mat gradX, gradY;
+	cv::Mat gradXFloat , gradYFloat;
+	cv::Mat grad;
+	cv::Mat gradScaled;
 
-	Sobel(image, im.grad_x, CV_16SC1, 1, 0, 5, scale, delta, cv::BORDER_DEFAULT);
-	Sobel(image, im.grad_y, CV_16SC1, 0, 1, 5, scale, delta, cv::BORDER_DEFAULT);  // tipo 16S para usar no canny algo
-	Sobel(image, grad_x, CV_32F, 1, 0, 5, scale, delta, cv::BORDER_DEFAULT);
-	Sobel(image, grad_y, CV_32F, 0, 1, 5, scale, delta, cv::BORDER_DEFAULT);   // tipo 32 F para calcular magnitude do gradiente para dar imshow no gradiente.
+	Sobel(image, gradX, CV_16SC1, 1, 0, 5, scale, delta, cv::BORDER_DEFAULT);
+	Sobel(image, gradY, CV_16SC1, 0, 1, 5, scale, delta, cv::BORDER_DEFAULT);  // tipo 16S para usar no canny algo
+	Sobel(image, gradXFloat, CV_32F, 1, 0, 5, scale, delta, cv::BORDER_DEFAULT);
+	Sobel(image, gradYFloat, CV_32F, 0, 1, 5, scale, delta, cv::BORDER_DEFAULT);   // tipo 32 F para calcular magnitude do gradiente para dar imshow no gradiente.
 	if (scale_fac != 1) {
-		im.grad_x.convertTo(im.grad_x, -1, scale_fac);  //// optional and converTo keeps the number of channels of the image, untouched. If not , use cvtColor.
-		im.grad_y.convertTo(im.grad_y, -1, scale_fac);  //// optional
+		gradX.convertTo(gradX, -1, scale_fac);  //// optional and converTo keeps the number of channels of the image, untouched. If not , use cvtColor.
+		gradY.convertTo(gradY, -1, scale_fac);  //// optional
 	}
-
-	cv::magnitude(grad_x, grad_y, im.grad);
-	cv::normalize(im.grad, im.grad_scaled, 0, 255, cv::NORM_MINMAX, CV_8UC1);
+	cv::magnitude(gradXFloat, gradYFloat, grad);
+	cv::normalize(grad, gradScaled, 0, 255, cv::NORM_MINMAX, CV_8UC1);
+	gradient[0] = gradX; 
+	gradient[1] = gradY;
+	gradient[2] = grad;
+	gradient[3] = gradScaled;
+	return gradient;
 }
 
 void otsu(const cv::Mat& image, int& threshold1) {
@@ -161,21 +170,21 @@ void otsu(const cv::Mat& image, int& threshold1) {
 void empty_handle(int, void*) {}
 
 cv::Mat canny_with_otsu(cv::Mat& image) {
-	static int count = 1;
 	static int OTSU;
 	cv::Mat cannyImage;
-	applySobel(image, m); // Gera im.grad_x/y para ser usado no Canny (16S) e tambem grad_x/y (32F) que gera im.grad ( valor >> 255 )
-						  // que depois eh normalizado em im.grad_scaled e ser vizualizado 255 e usado para achar parametro OTSU.
-	otsu(im.grad_scaled, OTSU);
-	cv::minMaxLoc(im.grad, &im.min, &im.max, &Idmin, &Idmax);
+	std::array <cv::Mat, 4> gradient = findGradients(image, m); // Gera im.gradX/y para ser usado no Canny (16S) e tambem gradX/y (32F) que gera im.grad ( valor >> 255 )
+						  // que depois eh normalizado em im.gradScaled e ser vizualizado 255 e usado para achar parametro OTSU.
 
-	double fac = m * im.max / 255;
+	otsu(gradient[3], OTSU);
+	cv::minMaxLoc(gradient[2], &min, &max, &Idmin, &Idmax);
+
+	double fac = m * max / 255;
 	double OTSU_adapt = fac * OTSU;
 	static int low_t;
 	static int high_t;
-	low_t = OTSU_adapt * par.L_otsu_slider / 100;
-	high_t = OTSU_adapt * par.H_otsu_slider / 100; // we divide by 100 so that 0 to 500 means 0 to 5 passing through values in between
-	cv::Canny(im.grad_x, im.grad_y, cannyImage, low_t, high_t, true);
+	low_t = OTSU_adapt * highThresholdSlider / 100;
+	high_t = OTSU_adapt * lowThresholdSlider / 100; // we divide by 100 so that 0 to 500 means 0 to 5 passing through values in between
+	cv::Canny(gradient[0], gradient[1], cannyImage, low_t, high_t, true);
 	return cannyImage;
 }
 
@@ -316,17 +325,17 @@ void mouse_callback(int  event, int  x, int  y, int  flag, void* param)
 
 	if (flag == (cv::EVENT_FLAG_CTRLKEY + cv::EVENT_FLAG_ALTKEY))
 	{
-		byCanny = !byCanny;
+		byGradient = !byGradient;
 
 		cv::destroyWindow(name);
 
-		if (byCanny == false) {
+		if (byGradient == false) {
 			name = "Using Adaptive Threshold";
 			cv::namedWindow(name);
 			cv::setMouseCallback(name, mouse_callback);
 		}
 		else {
-			name = "Using Canny";
+			name = "Using Gradient";
 			cv::namedWindow(name);
 			cv::setMouseCallback(name, mouse_callback);
 			trackbar(empty_handle, name);

@@ -1,7 +1,5 @@
 #include "Header.h"
 
-cv::Mat frame;
-
 int main(int argv, char** argc)
 {
 	//opens webcam
@@ -12,7 +10,9 @@ int main(int argv, char** argc)
 		return -1;
 	}
 
-	name = "Using Canny";
+	cv::Mat frame;
+	byGradient = true;
+	name = "Using Gradient";
 	cv::namedWindow(name);
 	cv::setMouseCallback(name, mouse_callback);
 	trackbar(empty_handle, name);
@@ -24,11 +24,11 @@ int main(int argv, char** argc)
 		
 		cv::Mat preProcImage = preProcess(frame);
 
-		if (byCanny == false) {
+		if (byGradient == false) {
 			segmentedImage = segmentationByAdaptThreshold(preProcImage, selected_contours_image, segmentedImage);
 		}
 
-		if (byCanny == true) {
+		if (byGradient == true) {
 			segmentedImage = segmentByCanny(preProcImage, selected_contours_image, segmentedImage);
 		}
 

@@ -8,47 +8,10 @@
 #include <sstream>
 #include <fstream>
 
-extern cv::Point Idmax, Idmin;
-extern int low_t, high_t;
-extern double m;
 extern std::string name;
-extern int RADIUS;
-extern bool pause;
-extern bool trigger;
-extern bool reset;
-extern bool byRadius;
-extern bool byCanny;
-extern std::vector <int> sizes;
-extern std::vector <double> DIST;
-extern std::vector < std::vector<cv::Point> > contours;
-extern std::vector < cv::Point > P;
-extern cv::Point Landmark;
-extern cv::Point TrackPoint;
+extern bool byGradient;
 
-struct images {
-public:
-	cv::Mat frame;
-	cv::Mat imageCanny;
-	cv::Mat grad_y;
-	cv::Mat grad_x;
-	cv::Mat grad;
-	cv::Mat grad_scaled;
-	std::string window;
-	double min, max;
-};
-struct parameters_t {
-	int low_lim = 255;
-	int high_lim = 255;
-	int low_slider = 0;
-	int high_slider = 100;
-	int H_otsu_slider = 200;
-	int L_otsu_slider = 100;
-	int otsu_lim = 600;
-};
-extern images im;
-extern parameters_t par;
-
-void applySobel(const cv::Mat& image, double scale_fac = 1);
+std::array <cv::Mat, 4> findGradients(const cv::Mat& image, double scale_fac = 1);
 void otsu(const cv::Mat& image, int& threshold1);
 void empty_handle(int, void*);
 void trackbar(void(*functocall)(int, void*), std::string image_window);
