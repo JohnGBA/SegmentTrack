@@ -24,8 +24,6 @@ extern std::vector < std::vector<cv::Point> > contours;
 extern std::vector < cv::Point > P;
 extern cv::Point Landmark;
 extern cv::Point TrackPoint;
-extern images im;
-extern parameters_t par;
 
 struct images {
 public:
@@ -47,11 +45,13 @@ struct parameters_t {
 	int L_otsu_slider = 100;
 	int otsu_lim = 600;
 };
+extern images im;
+extern parameters_t par;
 
-void ApplySobel(const cv::Mat& image, double scale_fac = 1);
+void applySobel(const cv::Mat& image, double scale_fac = 1);
 void otsu(const cv::Mat& image, int& threshold1);
 void empty_handle(int, void*);
-void otsu_trackbar(void(*functocall)(int, void*), std::string image_window);
+void trackbar(void(*functocall)(int, void*), std::string image_window);
 void canny_with_otsu(cv::Mat& image);
 void ballsContour(cv::Mat& image, std::vector< std::vector<cv::Point> >& c, cv::Scalar color);
 void eraseContours(std::vector< std::vector<cv::Point> >& c, int limit);
@@ -68,3 +68,5 @@ void calculateDistances(std::vector< std::vector<cv::Point> >& points, std::vect
 void get_Points(std::vector< std::vector<cv::Point> >& c, std::vector< std::vector<cv::Point> >& p, int Nb_points);
 void validationOfCentroid(std::vector< std::vector<cv::Point> >& c, std::vector <cv::Point>& centroids, int Nb_cent, int param_px, double param_size, double param_distance, int param_crit, std::vector <cv::Point>& TrackPoint, std::vector <std::vector  < cv::Point >>& trackedContour);
 void drawResults(cv::Mat& image, cv::Mat& selectedContours, std::vector < std::vector<cv::Point> > c, std::vector< cv::Point > centroids);
+cv::Mat segmentationByAdaptThreshold(cv::Mat CLAHE_image, cv::Mat selected_contours_image, cv::Mat final_image);
+cv::Mat segmentByCanny(cv::Mat CLAHE_image, cv::Mat selected_contours_image, cv::Mat final_image);

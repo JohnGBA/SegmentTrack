@@ -6,7 +6,66 @@ cv::Point Idmax, Idmin;
 int low_t, high_t;
 double m = 2;  // scale factor in Sobel function
 
-void otsu_trackbar(void(*functocall)(int, void*), std::string image_window)
+cv::Mat segmentationByAdaptThreshold(cv::Mat CLAHE_image, cv::Mat selected_contours_image, cv::Mat final_image)
+{
+	cv::Mat adapt_thresh_image;
+	cv::adaptiveThreshold(CLAHE_image, adapt_thresh_image, 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY_INV, 25, 8);
+	filterSpeckles(adapt_thresh_image, 0, 1600, 0);
+	findContours(adapt_thresh_image, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+	eraseContours(contours, 100);
+
+	std::vector<cv::Point> centroids(contours.size());
+
+	findCentroids_by_Contour(contours, centroids);
+	drawContours(final_image, contours, -1, cv::Scalar(255, 255, 255));
+	drawCentroids(final_image, centroids);
+
+	if (pause == true) {
+		pauseProgram(final_image, contours, centroids, name);
+	}
+
+	std::vector <cv::Point> tracked_centroid;
+	std::vector <std::vector < cv::Point > > tracked_contour;
+	validationOfCentroid(contours, centroids, centroids.size(), 30, 0.2, 0.25, 3, tracked_centroid, tracked_contour);
+
+	if (byRadius == false)
+		drawResults(final_image, selected_contours_image, tracked_contour, tracked_centroid);
+	else {
+		selectContours(contours, centroids, Landmark, RADIUS, NULL);
+		drawResults(final_image, selected_contours_image, contours, centroids);
+	}
+	return final_image;
+}
+
+cv::Mat segmentByCanny(cv::Mat CLAHE_image, cv::Mat selected_contours_image, cv::Mat final_image)
+{
+
+	canny_with_otsu(CLAHE_image);
+	findContours(im.imageCanny, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+	eraseContours(contours, 100);
+	std::vector<cv::Point> centroids(contours.size());
+
+	findCentroids_by_Contour(contours, centroids);
+	drawContours(final_image, contours, -1, cv::Scalar(255, 255, 255));
+	drawCentroids(final_image, centroids);
+	if (pause == true) {
+		cannyPause(final_image, contours, centroids, name);
+	}
+
+	std::vector <cv::Point> tracked_centroid;
+	std::vector <std::vector < cv::Point > > tracked_contour;
+	validationOfCentroid(contours, centroids, centroids.size(), 30, 0.2, 0.25, 3, tracked_centroid, tracked_contour);
+
+	if (byRadius == false)
+		drawResults(final_image, selected_contours_image, tracked_contour, tracked_centroid);
+	else {
+		selectContours(contours, centroids, Landmark, RADIUS, NULL);
+		drawResults(final_image, selected_contours_image, contours, centroids);
+	}
+	return final_image;
+}
+
+void trackbar(void(*functocall)(int, void*), std::string image_window)
 {
 	im.window = image_window;
 	cv::namedWindow(image_window);
@@ -15,7 +74,7 @@ void otsu_trackbar(void(*functocall)(int, void*), std::string image_window)
 	cv::createTrackbar("High slider", image_window, &par.H_otsu_slider, par.otsu_lim, functocall);
 }
 
-void ApplySobel(const cv::Mat& image, double scale_fac)
+void applySobel(const cv::Mat& image, double scale_fac)
 {
 	double scale = 1;
 	int delta = 0;
@@ -74,7 +133,7 @@ void empty_handle(int, void*) {}
 void canny_with_otsu(cv::Mat& image) {
 	static int count = 1;
 	static int OTSU;
-	ApplySobel(image, m); // Gera im.grad_x/y para ser usado no Canny (16S) e tambem grad_x/y (32F) que gera im.grad ( valor >> 255 )
+	applySobel(image, m); // Gera im.grad_x/y para ser usado no Canny (16S) e tambem grad_x/y (32F) que gera im.grad ( valor >> 255 )
 						  // que depois eh normalizado em im.grad_scaled e ser vizualizado 255 e usado para achar parametro OTSU.
 	otsu(im.grad_scaled, OTSU);
 	cv::minMaxLoc(im.grad, &im.min, &im.max, &Idmin, &Idmax);
@@ -230,15 +289,15 @@ void mouse_callback(int  event, int  x, int  y, int  flag, void* param)
 		cv::destroyWindow(name);
 
 		if (byCanny == false) {
-			name = "Adapt threshold binarized image";
+			name = "Using Adaptive Threshold";
 			cv::namedWindow(name);
 			cv::setMouseCallback(name, mouse_callback);
 		}
 		else {
-			name = "Canny binarized image";
+			name = "Using Canny";
 			cv::namedWindow(name);
 			cv::setMouseCallback(name, mouse_callback);
-			otsu_trackbar(empty_handle, name);
+			trackbar(empty_handle, name);
 		}
 
 		cv::waitKey(30); // give time to load the window
