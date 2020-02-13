@@ -7,19 +7,19 @@ bool pause = true;
 bool trigger = true;
 bool reset = true;
 bool byRadius = false;
-std::vector < cv::Point > pt(1, cv::Point(0, 0));
-std::vector <int> sizes(1, 0);
-std::vector <double> dist(1, 0);
-std::vector < std::vector<cv::Point> > contours;
 
 bool byGradient = true;
 int lowThresholdSlider = 200;
 int highThresholdSlider = 100;
 int sliderLimit = 600;
 
-cv::Mat segmentationByAdaptThreshold(cv::Mat preProcessedImage, cv::Mat selected_contours_image,
-	cv::Mat segmentedImage)
+cv::Mat segmentByAdaptThreshold(cv::Mat preProcessedImage, cv::Mat selectedContoursImage)
 {
+	static int sizes = 0;
+	static double dist = 0;
+	static cv::Point pt = cv::Point(0, 0);
+	cv::Mat segmentedImage = cv::Mat::zeros(preProcessedImage.rows, preProcessedImage.cols, CV_8UC3);
+	std::vector < std::vector<cv::Point> > contours;
 	cv::Mat adapt_thresh_image;
 	cv::adaptiveThreshold(preProcessedImage, adapt_thresh_image, 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY_INV, 25, 8);
 	filterSpeckles(adapt_thresh_image, 0, 1600, 0);
@@ -38,21 +38,25 @@ cv::Mat segmentationByAdaptThreshold(cv::Mat preProcessedImage, cv::Mat selected
 
 	std::vector <cv::Point> tracked_centroid;
 	std::vector <std::vector < cv::Point > > tracked_contour;
-	validationOfCentroid(contours, centroids, centroids.size(), 30, 0.2, 0.25, tracked_centroid, tracked_contour);
+	validationOfCentroid(contours, centroids, centroids.size(), 30, 0.2, 0.25, tracked_centroid, tracked_contour, pt, sizes, dist);
 
 	if (byRadius == false)
-		drawResults(preProcessedImage, segmentedImage, selected_contours_image, tracked_contour, tracked_centroid);
+		drawResults(preProcessedImage, segmentedImage, selectedContoursImage, tracked_contour, tracked_centroid, pt);
 	else {
 		selectContours(contours, centroids, landmark, radius, NULL);
-		drawResults(preProcessedImage, segmentedImage, selected_contours_image, contours, centroids);
+		drawResults(preProcessedImage, segmentedImage, selectedContoursImage, contours, centroids, pt);
 	}
 	return segmentedImage;
 }
 
-cv::Mat segmentByCanny(cv::Mat preProcessedImage, cv::Mat selected_contours_image,
-	cv::Mat segmentedImage)
+cv::Mat segmentByCanny(cv::Mat preProcessedImage, cv::Mat selectedContoursImage)
 {
-	cv::Mat cannyImage = canny_with_otsu(preProcessedImage);
+	static int sizes = 0;
+	static double dist = 0;
+	static cv::Point pt = cv::Point(0, 0);
+	cv::Mat segmentedImage = cv::Mat::zeros(preProcessedImage.rows, preProcessedImage.cols, CV_8UC3);
+	std::vector < std::vector<cv::Point> > contours;
+	cv::Mat cannyImage = cannyUsingOtsu(preProcessedImage);
 	findContours(cannyImage, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
 	eraseContours(contours, 100);
 	std::vector<cv::Point> centroids(contours.size());
@@ -64,15 +68,15 @@ cv::Mat segmentByCanny(cv::Mat preProcessedImage, cv::Mat selected_contours_imag
 		cannyPause(preProcessedImage, segmentedImage, contours, centroids, name);
 	}
 
-	std::vector <cv::Point> tracked_centroid;
-	std::vector <std::vector < cv::Point > > tracked_contour;
-	validationOfCentroid(contours, centroids, centroids.size(), 30, 0.2, 0.25, tracked_centroid, tracked_contour);
+	std::vector <cv::Point> trackedCentroid;
+	std::vector <std::vector < cv::Point > > trackedContour;
+	validationOfCentroid(contours, centroids, centroids.size(), 30, 0.2, 0.25, trackedCentroid, trackedContour, pt, sizes, dist);
 
 	if (byRadius == false)
-		drawResults(preProcessedImage, segmentedImage, selected_contours_image, tracked_contour, tracked_centroid);
+		drawResults(preProcessedImage, segmentedImage, selectedContoursImage, trackedContour, trackedCentroid, pt);
 	else {
 		selectContours(contours, centroids, landmark, radius, NULL);
-		drawResults(preProcessedImage, segmentedImage, selected_contours_image, contours, centroids);
+		drawResults(preProcessedImage, segmentedImage, selectedContoursImage, contours, centroids, pt);
 	}
 	return segmentedImage;
 }
@@ -88,12 +92,12 @@ cv::Mat preProcess(cv::Mat frame)
 	return preProcessedImage;
 }
 
-void trackbar(void(*functocall)(int, void*), std::string image_window)
+void trackbar(void(*functocall)(int, void*), std::string windowName)
 {
-	cv::namedWindow(image_window);
-	cv::setMouseCallback(image_window, mouseCallback, NULL);
-	cv::createTrackbar("Low slider", image_window, &highThresholdSlider, sliderLimit, functocall);
-	cv::createTrackbar("High slider", image_window, &lowThresholdSlider, sliderLimit, functocall);
+	cv::namedWindow(windowName);
+	cv::setMouseCallback(windowName, mouseCallback, NULL);
+	cv::createTrackbar("Low slider", windowName, &highThresholdSlider, sliderLimit, functocall);
+	cv::createTrackbar("High slider", windowName, &lowThresholdSlider, sliderLimit, functocall);
 }
 
 std::array <cv::Mat,4> findGradients(const cv::Mat& image)
@@ -159,9 +163,9 @@ void otsu(const cv::Mat& image, int& threshold1) {
 	}
 }
 
-void empty_handle(int, void*) {}
+void emptyHandle(int, void*) {}
 
-cv::Mat canny_with_otsu(cv::Mat& image) {
+cv::Mat cannyUsingOtsu(cv::Mat& image) {
 	double min, max;
 	cv::Point Idmax, Idmin;
 	static int OTSU;
@@ -174,11 +178,11 @@ cv::Mat canny_with_otsu(cv::Mat& image) {
 
 	double multiplyingFactor = 2 * max / 255; // the multiplying number has to be the same as the 3rd argument of contertTo inside findGradients
 	double adjustedOtsu = multiplyingFactor * OTSU;
-	static int low_t;
-	static int high_t;
-	low_t = adjustedOtsu * highThresholdSlider / 100;
-	high_t = adjustedOtsu * lowThresholdSlider / 100; // we divide by 100 so that 0 to 500 means 0 to 5 passing through values in between
-	cv::Canny(gradient[0], gradient[1], cannyImage, low_t, high_t, true);
+	static int lowThreshold;
+	static int highThreshold;
+	lowThreshold = adjustedOtsu * highThresholdSlider / 100;
+	highThreshold = adjustedOtsu * lowThresholdSlider / 100; // we divide by 100 so that 0 to 500 means 0 to 5 passing through values in between
+	cv::Canny(gradient[0], gradient[1], cannyImage, lowThreshold, highThreshold, true);
 	return cannyImage;
 }
 
@@ -323,7 +327,7 @@ void mouseCallback(int  event, int  x, int  y, int  flag, void* param)
 			name = "Using Gradient";
 			cv::namedWindow(name);
 			cv::setMouseCallback(name, mouseCallback);
-			trackbar(empty_handle, name);
+			trackbar(emptyHandle, name);
 		}
 
 		cv::waitKey(30); // give time to load the window
@@ -383,7 +387,7 @@ void cannyPause(cv::Mat preProcImage, cv::Mat& segmentedImage, std::vector< std:
 	cv::imshow(name, segmentedImage);
 
 	while (cv::waitKey() != 27) {
-		cannyImage = canny_with_otsu(preProcImage);
+		cannyImage = cannyUsingOtsu(preProcImage);
 		findContours(cannyImage, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
 		eraseContours(contours, 100);
 		std::vector<cv::Point> centroids(contours.size());
@@ -411,21 +415,6 @@ void cannyPause(cv::Mat preProcImage, cv::Mat& segmentedImage, std::vector< std:
 	}
 	pause = false;
 	cv::destroyWindow("Selected contour(s)");
-}
-
-void newPoint(std::vector <cv::Point>& p, cv::Point& pt) {
-	p.pop_back();
-	p.insert(p.begin(), pt);
-}
-
-void newSize(std::vector <int>& sizes, int size) {
-	sizes.pop_back();
-	sizes.insert(sizes.begin(), size);
-}
-
-void newDist(std::vector <double>& dist, double& distance) {
-	dist.pop_back();
-	dist.insert(dist.begin(), distance);
 }
 
 void getPoints(std::vector< std::vector<cv::Point> >& contours, 
@@ -466,13 +455,13 @@ void calculateMeanDistances(std::vector< std::vector<cv::Point> >& points,
 }
 
 void drawResults(cv::Mat& preProcFrame, cv::Mat& segmentedImage, cv::Mat& selectedContours,
-	std::vector < std::vector<cv::Point> > contours, std::vector< cv::Point > centroids)
+	std::vector < std::vector<cv::Point> > contours, std::vector< cv::Point > centroids, cv::Point pt)
 {
 	if (byRadius == true)
 		circle(segmentedImage, landmark, radius, cv::Scalar(0, 255, 0), 1);
 
 	circle(segmentedImage, landmark, 5, cv::Scalar(255, 0, 255), 2);
-	circle(segmentedImage, pt[0], 6, cv::Scalar(255, 0, 0), 2);
+	circle(segmentedImage, pt, 6, cv::Scalar(255, 0, 0), 2);
 	drawContours(selectedContours, contours, -1, cv::Scalar(255, 255, 255));
 	drawCentroids(selectedContours, centroids);
 	cv::cvtColor(preProcFrame, preProcFrame, CV_GRAY2BGR);
@@ -481,9 +470,10 @@ void drawResults(cv::Mat& preProcFrame, cv::Mat& segmentedImage, cv::Mat& select
 	cv::waitKey(10);
 }
 
-void validationOfCentroid(std::vector< std::vector<cv::Point> >& contours, std::vector <cv::Point>& centroids, 
+void validationOfCentroid(std::vector< std::vector<cv::Point> >& contours, std::vector <cv::Point>& centroids,
 	int nbCentroids, int proximityConstraint, double sizeConstraint, double meanDistanceConstraint,
-	std::vector <cv::Point>& TrackedCentroid, std::vector <std::vector  < cv::Point >>& trackedContour) 
+	std::vector <cv::Point>& TrackedCentroid, std::vector <std::vector  < cv::Point >>& trackedContour,
+	cv::Point& pt, int& sizes, double& dist)
 {
 	cv::Point trackPoint;
 	cv::Point distance;
@@ -510,26 +500,26 @@ void validationOfCentroid(std::vector< std::vector<cv::Point> >& contours, std::
 		if (trigger)  // trigger  == true when we change trackPoint
 		{
 			if (reset == true) {
-				pt[0] = trackPoint;
-				sizes[0] = sizeC;
-				dist[0] = distanceC;
+				pt = trackPoint;
+				sizes = sizeC;
+				dist = distanceC;
 				reset = false;
 			}
 			else
 				trigger = false;
 		}
 
-		if ((norm(trackPoint - pt[0]) < proximityConstraint)) {
+		if ((norm(trackPoint - pt) < proximityConstraint)) {
 			criteria += 1;
 		}
 
-		relativeSize = abs((double)(sizeC - sizes[0]) / sizes[0]);
+		relativeSize = abs((double)(sizeC - sizes) / sizes);
 
 		if ((relativeSize < sizeConstraint)) {
 			criteria += 1;
 		}
 
-		relativeChange = abs((double)(distanceC - dist[0]) / dist[0]);
+		relativeChange = abs((double)(distanceC - dist) / dist);
 
 		if ((relativeChange < meanDistanceConstraint)) {
 			criteria += 1;
@@ -537,11 +527,10 @@ void validationOfCentroid(std::vector< std::vector<cv::Point> >& contours, std::
 
 		if (criteria >= 3) {
 			IdCentroid = i;
-			newSize(sizes, sizeC);
-			newDist(meanDistances, meanDistances[i]);
-
-			distance = trackPoint - pt[0];
-			newPoint(pt, trackPoint);
+			sizes = sizeC;
+			dist = distanceC;
+			distance = trackPoint - pt;
+			pt = trackPoint;
 			landmark += distance;
 			break;
 		}

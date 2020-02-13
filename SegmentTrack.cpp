@@ -15,25 +15,25 @@ int main(int argv, char** argc)
 	name = "Using Gradient";
 	cv::namedWindow(name);
 	cv::setMouseCallback(name, mouseCallback);
-	trackbar(empty_handle, name);
+	trackbar(emptyHandle, name);
 
 	while (vid.read(frame))
 	{
 		cv::Mat segmentedImage = cv::Mat::zeros(frame.rows, frame.cols, CV_8UC3);
-		cv::Mat selected_contours_image = cv::Mat::zeros(frame.rows, frame.cols, CV_8UC3);
+		cv::Mat selectedContoursImage = cv::Mat::zeros(frame.rows, frame.cols, CV_8UC3);
 		
 		cv::Mat preProcImage = preProcess(frame);
 
 		if (byGradient == false) {
-			segmentedImage = segmentationByAdaptThreshold(preProcImage, selected_contours_image, segmentedImage);
+			segmentedImage = segmentByAdaptThreshold(preProcImage, selectedContoursImage);
 		}
 
 		if (byGradient == true) {
-			segmentedImage = segmentByCanny(preProcImage, selected_contours_image, segmentedImage);
+			segmentedImage = segmentByCanny(preProcImage, selectedContoursImage);
 		}
 
 		cv::imshow(name, segmentedImage);
-		cv::imshow("Selected contours", selected_contours_image);
+		cv::imshow("Selected contours", selectedContoursImage);
 		cv::imshow("Result", frame);
 		cv::waitKey(1);
 	}
