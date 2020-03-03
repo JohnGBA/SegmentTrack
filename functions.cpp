@@ -34,12 +34,14 @@ cv::Mat segmentByAdaptThreshold(cv::Mat& frame, cv::Mat selectedContoursImage)
 		pauseProgram(segmentedImage, contours, centroids, name);
 	}
 
-	std::vector <cv::Point> trackedCentroid;
-	std::vector <std::vector < cv::Point > > trackedContour;
-	validationOfCentroid(contours, centroids, centroids.size(), trackedCentroid, trackedContour, trackedCentroidPos, size, dist);
+	std::vector < cv::Point > trackedContour;
+	trackedContour = getMostSimilarContour(contours, centroids, trackedCentroidPos, size, dist);
 
-	if (byRadius == false)
-		drawResults(frame, segmentedImage, selectedContoursImage, trackedContour, trackedCentroid, trackedCentroidPos);
+	if (byRadius == false) {
+		std::vector<cv::Point> trackedCentroids(1, trackedCentroidPos);
+		std::vector <std::vector < cv::Point >>  trackedContours(1, trackedContour);
+		drawResults(frame, segmentedImage, selectedContoursImage, trackedContours, trackedCentroids, trackedCentroidPos);
+	}
 	else {
 		selectContours(contours, centroids, landmark, radius, NULL);
 		drawResults(frame, segmentedImage, selectedContoursImage, contours, centroids, trackedCentroidPos);
@@ -66,12 +68,14 @@ cv::Mat segmentByCanny(cv::Mat& frame, cv::Mat selectedContoursImage)
 		cannyPause(preProcessedImage, segmentedImage, contours, centroids, name);
 	}
 
-	std::vector <cv::Point> trackedCentroid;
-	std::vector <std::vector < cv::Point > > trackedContour;
-	validationOfCentroid(contours, centroids, centroids.size(), trackedCentroid, trackedContour, trackedCentroidPos, size, dist);
+	std::vector < cv::Point >  trackedContour;
+	trackedContour = getMostSimilarContour(contours, centroids, trackedCentroidPos, size, dist);
 
-	if (byRadius == false)
-		drawResults(frame, segmentedImage, selectedContoursImage, trackedContour, trackedCentroid, trackedCentroidPos);		
+	if (byRadius == false) {
+		std::vector<cv::Point> trackedCentroids(1, trackedCentroidPos);
+		std::vector <std::vector < cv::Point >>  trackedContours(1, trackedContour);
+		drawResults(frame, segmentedImage, selectedContoursImage, trackedContours, trackedCentroids, trackedCentroidPos);
+	}
 	else {
 		selectContours(contours, centroids, landmark, radius, NULL);
 		drawResults(frame, segmentedImage, selectedContoursImage, contours, centroids, trackedCentroidPos);
@@ -472,10 +476,11 @@ void drawResults(cv::Mat& frame, cv::Mat& segmentedImage, cv::Mat& selectedConto
 	drawCirclesInSelectedContours(frame, contours, cv::Scalar(0, 0, 255));
 }
 
-void validationOfCentroid(std::vector< std::vector<cv::Point> >& contours, std::vector <cv::Point>& centroids,
-	int nbCentroids,std::vector <cv::Point>& TrackedCentroid, std::vector <std::vector  < cv::Point >>& trackedContour,
-	cv::Point& trackedCentroidPos, int& size, double& dist)
+std::vector  < cv::Point > getMostSimilarContour(std::vector< std::vector<cv::Point> >& contours,
+	std::vector <cv::Point>& centroids, cv::Point& trackedCentroidPos, int& size, double& dist)
 {  
+	int nbCentroids = centroids.size();
+	std::vector  < cv::Point > trackedContour;
 	cv::Point trackPoint;
 	cv::Point distance;
 	int criteriaCounter = 0;
@@ -530,6 +535,6 @@ void validationOfCentroid(std::vector< std::vector<cv::Point> >& contours, std::
 			break;
 		}
 	}
-	trackedContour.push_back(contours[IdCentroid]);
-	TrackedCentroid.push_back(centroids[IdCentroid]);
+	trackedContour = contours[IdCentroid];
+	return trackedContour;
 }

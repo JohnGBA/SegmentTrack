@@ -26,7 +26,7 @@ void pauseProgram(cv::Mat& image, std::vector< std::vector<cv::Point> > contours
 void cannyPause(cv::Mat preProcImage, cv::Mat& segmentedImage, std::vector< std::vector<cv::Point> > contours, std::vector<cv::Point> centroids, std::string name);
 std::vector < double > calculateMeanDistances(std::vector< std::vector<cv::Point> >& points, std::vector<cv::Point>& centroids);
 std::vector < std::vector<cv::Point> > getPoints(std::vector< std::vector<cv::Point> >& contours, int nbPoints);
-void validationOfCentroid(std::vector< std::vector<cv::Point> >& contours, std::vector <cv::Point>& centroids, int nbCent, std::vector <cv::Point>& trackPoint, std::vector <std::vector  < cv::Point >>& trackedContour, cv::Point& trackedCentroidPos, int& size, double& dist);
+std::vector < cv::Point > getMostSimilarContour(std::vector< std::vector<cv::Point> >& contours, std::vector <cv::Point>& centroids, cv::Point& trackedCentroidPos, int& size, double& dist);
 void drawResults(cv::Mat& frame, cv::Mat& image, cv::Mat& selectedContours, std::vector < std::vector<cv::Point> > contours, std::vector< cv::Point > centroids, cv::Point trackedCentroidPos);
 cv::Mat segmentByAdaptThreshold(cv::Mat& frame, cv::Mat selectedContoursImage);
 cv::Mat segmentByCanny(cv::Mat& frame, cv::Mat selectedContoursImage);

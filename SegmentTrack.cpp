@@ -10,7 +10,7 @@ int main(int argv, char** argc)
 		return -1;
 	}
 
-	cv::Mat frame, result;
+	cv::Mat frame;
 	byGradient = true;
 	name = "Using Gradient";
 	cv::namedWindow(name);
