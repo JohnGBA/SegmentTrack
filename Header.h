@@ -24,7 +24,7 @@ void selectContours(std::vector< std::vector<cv::Point> >& contours, std::vector
 void mouseCallback(int  event, int  x, int  y, int  flag, void* param);
 void pauseProgram(cv::Mat& image, std::vector< std::vector<cv::Point> > contours, std::vector<cv::Point> centroids, std::string name);
 void cannyPause(cv::Mat preProcImage, cv::Mat& segmentedImage, std::vector< std::vector<cv::Point> > contours, std::vector<cv::Point> centroids, std::string name);
-void calculateMeanDistances(std::vector< std::vector<cv::Point> >& points, std::vector<cv::Point>& centroids, std::vector <double>& distances);
+std::vector < double > calculateMeanDistances(std::vector< std::vector<cv::Point> >& points, std::vector<cv::Point>& centroids);
 void getPoints(std::vector< std::vector<cv::Point> >& contours, std::vector< std::vector<cv::Point> >& vecPoints, int nbPoints);
 void validationOfCentroid(std::vector< std::vector<cv::Point> >& contours, std::vector <cv::Point>& centroids, int nbCent, int paramPos, double paramSize, double paramDist, std::vector <cv::Point>& trackPoint, std::vector <std::vector  < cv::Point >>& trackedContour, cv::Point& pt, int& sizes, double& dist);
 void drawResults(cv::Mat& frame, cv::Mat& image, cv::Mat& selectedContours, std::vector < std::vector<cv::Point> > contours, std::vector< cv::Point > centroids, cv::Point pt);

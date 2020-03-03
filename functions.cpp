@@ -436,9 +436,10 @@ void getPoints(std::vector< std::vector<cv::Point> >& contours,
 	}
 }
 
-void calculateMeanDistances(std::vector< std::vector<cv::Point> >& points, 
-	std::vector<cv::Point>& centroids, std::vector <double>& meanDistances)
+std::vector < double > calculateMeanDistances(std::vector< std::vector<cv::Point> >& points,
+	std::vector<cv::Point>& centroids)
 {
+	std::vector < double > meanDistances;
 	size_t nbCentroids = centroids.size();
 	double sum = 0;
 
@@ -453,6 +454,7 @@ void calculateMeanDistances(std::vector< std::vector<cv::Point> >& points,
 		meanDistances.push_back(sum);
 		sum = 0;
 	}
+	return meanDistances;
 }
 
 void drawResults(cv::Mat& frame, cv::Mat& segmentedImage, cv::Mat& selectedContours,
@@ -477,25 +479,23 @@ void validationOfCentroid(std::vector< std::vector<cv::Point> >& contours, std::
 {
 	cv::Point trackPoint;
 	cv::Point distance;
-	double relativeSize = 0;
-	double relativeChange = 0;
-	int criteria = 0;
-	std::vector < double > meanDistances;
+	//double relativeSize = 0;
+	//double relativeChange = 0;
+	int criteriaCounter = 0;
+	//std::vector < double > meanDistances;
 	double distanceC = 0;
 	int sizeC = 0;
-	std::vector <int> sizesC;
 	int IdCentroid = 0;
 	std::vector < std::vector<cv::Point> > points;
 
 	selectContours(contours, centroids, landmark, NULL, nbCentroids); 
 	getPoints(contours, points, 10); // points[i] are in same order as contours[i] and size[i] etc..
-	calculateMeanDistances(points, centroids, meanDistances);
+	std::vector < double > meanDistances = calculateMeanDistances(points, centroids);
 
 	for (int i = 0; i < nbCentroids; i++) {
 		trackPoint = centroids[i];
 		distanceC = meanDistances[i];
 		sizeC = (int)contours[i].size();
-		sizesC.push_back(sizeC);
 
 		if (trigger)  // trigger  == true when we change trackPoint
 		{
@@ -510,22 +510,22 @@ void validationOfCentroid(std::vector< std::vector<cv::Point> >& contours, std::
 		}
 
 		if ((norm(trackPoint - pt) < proximityConstraint)) {
-			criteria += 1;
+			criteriaCounter += 1;
 		}
 
-		relativeSize = abs((double)(sizeC - sizes) / sizes);
+		double relativeSize = abs((double)(sizeC - sizes) / sizes);
 
 		if ((relativeSize < sizeConstraint)) {
-			criteria += 1;
+			criteriaCounter += 1;
 		}
 
-		relativeChange = abs((double)(distanceC - dist) / dist);
+		double relativeChange = abs((double)(distanceC - dist) / dist);
 
 		if ((relativeChange < meanDistanceConstraint)) {
-			criteria += 1;
+			criteriaCounter += 1;
 		}
 
-		if (criteria >= 3) {
+		if (criteriaCounter >= 3) {
 			IdCentroid = i;
 			sizes = sizeC;
 			dist = distanceC;
