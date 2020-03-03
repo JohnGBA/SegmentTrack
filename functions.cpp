@@ -7,23 +7,23 @@ bool pause = true;
 bool trigger = true;
 bool reset = true;
 bool byRadius = false;
-
 bool byGradient = true;
 int lowThresholdSlider = 200;
 int highThresholdSlider = 100;
 int sliderLimit = 600;
 
-cv::Mat segmentByAdaptThreshold(cv::Mat preProcessedImage, cv::Mat selectedContoursImage)
+cv::Mat segmentByAdaptThreshold(cv::Mat& frame, cv::Mat selectedContoursImage)
 {
+	cv::Mat preProcessedImage = preProcess(frame);
 	static int sizes = 0;
 	static double dist = 0;
 	static cv::Point pt = cv::Point(0, 0);
 	cv::Mat segmentedImage = cv::Mat::zeros(preProcessedImage.rows, preProcessedImage.cols, CV_8UC3);
 	std::vector < std::vector<cv::Point> > contours;
-	cv::Mat adapt_thresh_image;
-	cv::adaptiveThreshold(preProcessedImage, adapt_thresh_image, 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY_INV, 25, 8);
-	filterSpeckles(adapt_thresh_image, 0, 1600, 0);
-	findContours(adapt_thresh_image, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+	cv::Mat adaptThresholdImage;
+	cv::adaptiveThreshold(preProcessedImage, adaptThresholdImage, 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY_INV, 25, 8);
+	filterSpeckles(adaptThresholdImage, 0, 1600, 0);
+	findContours(adaptThresholdImage, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
 	eraseContours(contours, 100);
 
 	std::vector<cv::Point> centroids(contours.size());
@@ -36,21 +36,22 @@ cv::Mat segmentByAdaptThreshold(cv::Mat preProcessedImage, cv::Mat selectedConto
 		pauseProgram(segmentedImage, contours, centroids, name);
 	}
 
-	std::vector <cv::Point> tracked_centroid;
-	std::vector <std::vector < cv::Point > > tracked_contour;
-	validationOfCentroid(contours, centroids, centroids.size(), 30, 0.2, 0.25, tracked_centroid, tracked_contour, pt, sizes, dist);
+	std::vector <cv::Point> trackedCentroid;
+	std::vector <std::vector < cv::Point > > trackedContour;
+	validationOfCentroid(contours, centroids, centroids.size(), 30, 0.2, 0.25, trackedCentroid, trackedContour, pt, sizes, dist);
 
 	if (byRadius == false)
-		drawResults(preProcessedImage, segmentedImage, selectedContoursImage, tracked_contour, tracked_centroid, pt);
+		drawResults(frame, segmentedImage, selectedContoursImage, trackedContour, trackedCentroid, pt);
 	else {
 		selectContours(contours, centroids, landmark, radius, NULL);
-		drawResults(preProcessedImage, segmentedImage, selectedContoursImage, contours, centroids, pt);
+		drawResults(frame, segmentedImage, selectedContoursImage, contours, centroids, pt);
 	}
 	return segmentedImage;
 }
 
-cv::Mat segmentByCanny(cv::Mat preProcessedImage, cv::Mat selectedContoursImage)
+cv::Mat segmentByCanny(cv::Mat& frame, cv::Mat selectedContoursImage)
 {
+	cv::Mat preProcessedImage = preProcess(frame);
 	static int sizes = 0;
 	static double dist = 0;
 	static cv::Point pt = cv::Point(0, 0);
@@ -73,10 +74,10 @@ cv::Mat segmentByCanny(cv::Mat preProcessedImage, cv::Mat selectedContoursImage)
 	validationOfCentroid(contours, centroids, centroids.size(), 30, 0.2, 0.25, trackedCentroid, trackedContour, pt, sizes, dist);
 
 	if (byRadius == false)
-		drawResults(preProcessedImage, segmentedImage, selectedContoursImage, trackedContour, trackedCentroid, pt);
+		drawResults(frame, segmentedImage, selectedContoursImage, trackedContour, trackedCentroid, pt);		
 	else {
 		selectContours(contours, centroids, landmark, radius, NULL);
-		drawResults(preProcessedImage, segmentedImage, selectedContoursImage, contours, centroids, pt);
+		drawResults(frame, segmentedImage, selectedContoursImage, contours, centroids, pt);
 	}
 	return segmentedImage;
 }
@@ -454,7 +455,7 @@ void calculateMeanDistances(std::vector< std::vector<cv::Point> >& points,
 	}
 }
 
-void drawResults(cv::Mat& preProcFrame, cv::Mat& segmentedImage, cv::Mat& selectedContours,
+void drawResults(cv::Mat& frame, cv::Mat& segmentedImage, cv::Mat& selectedContours,
 	std::vector < std::vector<cv::Point> > contours, std::vector< cv::Point > centroids, cv::Point pt)
 {
 	if (byRadius == true)
@@ -464,10 +465,9 @@ void drawResults(cv::Mat& preProcFrame, cv::Mat& segmentedImage, cv::Mat& select
 	circle(segmentedImage, pt, 6, cv::Scalar(255, 0, 0), 2);
 	drawContours(selectedContours, contours, -1, cv::Scalar(255, 255, 255));
 	drawCentroids(selectedContours, centroids);
-	cv::cvtColor(preProcFrame, preProcFrame, CV_GRAY2BGR);
-	drawCirclesInSelectedContours(preProcFrame, contours, cv::Scalar(0, 0, 255));
-	cv::imshow("Preprocessed Frame", preProcFrame);
-	cv::waitKey(10);
+	if (frame.channels() < 3)
+		cv::cvtColor(frame, frame, CV_GRAY2BGR);
+	drawCirclesInSelectedContours(frame, contours, cv::Scalar(0, 0, 255));
 }
 
 void validationOfCentroid(std::vector< std::vector<cv::Point> >& contours, std::vector <cv::Point>& centroids,

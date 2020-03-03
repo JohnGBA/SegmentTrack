@@ -27,7 +27,7 @@ void cannyPause(cv::Mat preProcImage, cv::Mat& segmentedImage, std::vector< std:
 void calculateMeanDistances(std::vector< std::vector<cv::Point> >& points, std::vector<cv::Point>& centroids, std::vector <double>& distances);
 void getPoints(std::vector< std::vector<cv::Point> >& contours, std::vector< std::vector<cv::Point> >& vecPoints, int nbPoints);
 void validationOfCentroid(std::vector< std::vector<cv::Point> >& contours, std::vector <cv::Point>& centroids, int nbCent, int paramPos, double paramSize, double paramDist, std::vector <cv::Point>& trackPoint, std::vector <std::vector  < cv::Point >>& trackedContour, cv::Point& pt, int& sizes, double& dist);
-void drawResults(cv::Mat& preProcImage, cv::Mat& image, cv::Mat& selectedContours, std::vector < std::vector<cv::Point> > contours, std::vector< cv::Point > centroids, cv::Point pt);
-cv::Mat segmentByAdaptThreshold(cv::Mat preProcImage, cv::Mat selectedContoursImage);
-cv::Mat segmentByCanny(cv::Mat preProcImage, cv::Mat selectedContoursImage);
+void drawResults(cv::Mat& frame, cv::Mat& image, cv::Mat& selectedContours, std::vector < std::vector<cv::Point> > contours, std::vector< cv::Point > centroids, cv::Point pt);
+cv::Mat segmentByAdaptThreshold(cv::Mat& frame, cv::Mat selectedContoursImage);
+cv::Mat segmentByCanny(cv::Mat& frame, cv::Mat selectedContoursImage);
 cv::Mat preProcess(cv::Mat frame);
