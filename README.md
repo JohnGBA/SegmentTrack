@@ -1,9 +1,6 @@
 # SegmentTrack
 Algorithm to segment and track selected areas on a video. Using OpenCV
 
-
-Welcome to the SegmentTrack wiki!
-
 ## Presentation
 This program allows one to choose on-the-fly, zones in a video to segment and track and also to switch the algorithm segmentation mode, tracking mode, pause the program and more. It works using descriptors/features of extracted edges of the image and matching those features inter-frame. This program could have applications in robot vision, camera stabilization, scene-awareness for self-guidance, surveillance systems and so on. 
 
