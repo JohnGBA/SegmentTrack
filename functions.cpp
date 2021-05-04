@@ -23,7 +23,7 @@ cv::Mat segmentByAdaptThreshold(cv::Mat& frame, cv::Mat selectedContoursImage)
 	cv::Mat adaptThresholdImage;
 	cv::adaptiveThreshold(preProcessedImage, adaptThresholdImage, 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY_INV, 25, 8);
 	filterSpeckles(adaptThresholdImage, 0, 1600, 0);
-	findContours(adaptThresholdImage, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+	findContours(adaptThresholdImage, contours, cv::RETR_LIST, cv::CHAIN_APPROX_NONE);
 	eraseContours(contours, 100);
 
 	std::vector<cv::Point> centroids = findCentroids(contours);
@@ -58,7 +58,7 @@ cv::Mat segmentByCanny(cv::Mat& frame, cv::Mat selectedContoursImage)
 	cv::Mat segmentedImage = cv::Mat::zeros(preProcessedImage.rows, preProcessedImage.cols, CV_8UC3);
 	std::vector < std::vector<cv::Point> > contours;
 	cv::Mat cannyImage = cannyUsingOtsu(preProcessedImage);
-	findContours(cannyImage, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+	findContours(cannyImage, contours, cv::RETR_LIST, cv::CHAIN_APPROX_NONE);
 	eraseContours(contours, 100);
 
 	std::vector<cv::Point> centroids = findCentroids(contours);
@@ -83,9 +83,9 @@ cv::Mat segmentByCanny(cv::Mat& frame, cv::Mat selectedContoursImage)
 	return segmentedImage;
 }
 
-cv::Mat preProcess(cv::Mat frame) 
+cv::Mat preProcess(cv::Mat frame)
 {
-	cv::cvtColor(frame, frame, CV_BGR2GRAY);
+	cv::cvtColor(frame, frame, cv::COLOR_BGR2GRAY);
 	medianBlur(frame, frame, 3);
 	cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
 	clahe->setClipLimit(4);
@@ -104,7 +104,7 @@ void trackbar(void(*functocall)(int, void*), std::string windowName)
 
 std::array <cv::Mat,4> findGradients(const cv::Mat& image)
 {
-	//Gradient on x and y and magnitude 
+	//Gradient on x and y and magnitude
 	std::array <cv::Mat, 4> gradient;
 	double scale = 1;
 	int delta = 0;
@@ -117,13 +117,13 @@ std::array <cv::Mat,4> findGradients(const cv::Mat& image)
 	Sobel(image, gradY, CV_16SC1, 0, 1, 5, scale, delta, cv::BORDER_DEFAULT);  // tipo 16S para usar no canny algo
 	Sobel(image, gradXFloat, CV_32F, 1, 0, 5, scale, delta, cv::BORDER_DEFAULT);
 	Sobel(image, gradYFloat, CV_32F, 0, 1, 5, scale, delta, cv::BORDER_DEFAULT);   // tipo 32 F para calcular magnitude do gradiente para dar imshow no gradiente.
-	
+
 	gradX.convertTo(gradX, -1, 2);  //// optional and converTo keeps the number of channels of the image. Othewise use cvtColor.
 	gradY.convertTo(gradY, -1, 2);  //// optional
-	
+
 	cv::magnitude(gradXFloat, gradYFloat, grad);
 	cv::normalize(grad, gradScaled, 0, 255, cv::NORM_MINMAX, CV_8UC1);
-	gradient[0] = gradX; 
+	gradient[0] = gradX;
 	gradient[1] = gradY;
 	gradient[2] = grad;
 	gradient[3] = gradScaled;
@@ -250,7 +250,7 @@ void drawCentroids(cv::Mat& image, std::vector<cv::Point>& centroids)
 	}
 }
 
-void selectContours(std::vector< std::vector<cv::Point> >& contours, std::vector<cv::Point>& centroids, 
+void selectContours(std::vector< std::vector<cv::Point> >& contours, std::vector<cv::Point>& centroids,
 	cv::Point& landmark, int maxDistance, int NbCentroids)
 {
 	std::vector< double > dist(centroids.size());
@@ -339,7 +339,7 @@ void mouseCallback(int  event, int  x, int  y, int  flag, void* param)
 }
 
 void pauseProgram(cv::Mat& segmentedImage, std::vector< std::vector<cv::Point> > contours,
-	std::vector<cv::Point> centroids, std::string name) 
+	std::vector<cv::Point> centroids, std::string name)
 {
 	cv::Mat selectedContoursImage = cv::Mat::zeros(segmentedImage.rows, segmentedImage.cols, CV_8UC3);
 	cv::Mat segmentedImageCopy = segmentedImage.clone();
@@ -359,7 +359,7 @@ void pauseProgram(cv::Mat& segmentedImage, std::vector< std::vector<cv::Point> >
 			circle(segmentedImage, landmark, radius, cv::Scalar(0, 255, 0), 1);
 		}
 
-		centroids = findCentroids(contours); 
+		centroids = findCentroids(contours);
 		drawContours(selectedContoursImage, contours, -1, cv::Scalar(255, 255, 255));
 		drawCentroids(selectedContoursImage, centroids);
 
@@ -378,7 +378,7 @@ void pauseProgram(cv::Mat& segmentedImage, std::vector< std::vector<cv::Point> >
 	cv::destroyWindow("Selected contour(s)");
 }
 
-void cannyPause(cv::Mat preProcImage, cv::Mat& segmentedImage, std::vector< std::vector<cv::Point> > contours, 
+void cannyPause(cv::Mat preProcImage, cv::Mat& segmentedImage, std::vector< std::vector<cv::Point> > contours,
 	std::vector<cv::Point> centroids, std::string name)
 {
 	cv::Mat selectedContoursImage = cv::Mat::zeros(segmentedImage.rows, segmentedImage.cols, CV_8UC3);
@@ -392,7 +392,7 @@ void cannyPause(cv::Mat preProcImage, cv::Mat& segmentedImage, std::vector< std:
 
 	while (cv::waitKey() != 27) {
 		cannyImage = cannyUsingOtsu(preProcImage);
-		findContours(cannyImage, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+		findContours(cannyImage, contours, cv::RETR_LIST, cv::CHAIN_APPROX_NONE);
 		eraseContours(contours, 100);
 		std::vector<cv::Point> centroids(contours.size());
 
@@ -472,13 +472,13 @@ void drawResults(cv::Mat& frame, cv::Mat& segmentedImage, cv::Mat& selectedConto
 	drawContours(selectedContours, contours, -1, cv::Scalar(255, 255, 255));
 	drawCentroids(selectedContours, centroids);
 	if (frame.channels() < 3)
-		cv::cvtColor(frame, frame, CV_GRAY2BGR);
+		cv::cvtColor(frame, frame, cv::COLOR_GRAY2BGR);
 	drawCirclesInSelectedContours(frame, contours, cv::Scalar(0, 0, 255));
 }
 
 std::vector  < cv::Point > getMostSimilarContour(std::vector< std::vector<cv::Point> >& contours,
 	std::vector <cv::Point>& centroids, cv::Point& trackedCentroidPos, int& size, double& dist)
-{  
+{
 	int nbCentroids = centroids.size();
 	std::vector  < cv::Point > trackedContour;
 	cv::Point trackPoint;
@@ -488,7 +488,7 @@ std::vector  < cv::Point > getMostSimilarContour(std::vector< std::vector<cv::Po
 	int sizeC = 0;
 	int IdCentroid = 0;
 
-	selectContours(contours, centroids, landmark, NULL, nbCentroids); 
+	selectContours(contours, centroids, landmark, NULL, nbCentroids);
 	std::vector < std::vector<cv::Point> > points = getPoints(contours, 10); // points[i] are in same order as contours[i] and size[i] etc..
 	std::vector < double > meanDistances = calculateMeanDistances(points, centroids);
 
