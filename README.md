@@ -62,5 +62,6 @@ By so, the segmentation result over the frame also change.
 
 
 
+
 Once the algorithm is set to run, the user can interact with program, toggle the segmentation mode, radius mode, pause the program and so on. A list of the hotkeys to press is in the Hotkeys page.
 
